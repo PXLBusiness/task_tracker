@@ -1,0 +1,18 @@
+{
+  "webhook_url": "https://your-n8n-instance.com/webhook/freshbooks-time",
+  "hotkey": "Alt+T",
+  "window_width": 1000,
+  "window_height": 1080,
+  "use_logo": false,
+  "logo_path": "",
+  "project_title": "Time Tracker",
+  "use_title": true,
+  "idle_detection_enabled": false,
+  "idle_minutes": 15,
+  "milestones_enabled": false,
+  "milestone_times": [60, 120, 180],
+  "milestone_sound": true,
+  "milestone_notification": true,
+  "floating_widget_enabled": false,
+  "recent_projects_limit": 5
+}

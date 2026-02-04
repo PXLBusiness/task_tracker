@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# User data (don't commit personal info)
+data/clients.json
+data/config.json
+data/timers.json
+data/queue.json
+
+# Build outputs
+dist/
+build/
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Electron
+out/

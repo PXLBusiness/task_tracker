@@ -1,0 +1,26 @@
+[
+  {
+    "client_name": "Example Client",
+    "client_id": "12345",
+    "projects": [
+      {
+        "project_name": "Website Project",
+        "project_id": "67890"
+      },
+      {
+        "project_name": "Marketing Campaign",
+        "project_id": "67891"
+      }
+    ]
+  },
+  {
+    "client_name": "Another Client",
+    "client_id": "23456",
+    "projects": [
+      {
+        "project_name": "Mobile App",
+        "project_id": "78901"
+      }
+    ]
+  }
+]

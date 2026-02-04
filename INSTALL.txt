@@ -1,0 +1,115 @@
+TIME TRACKER - INSTALLATION INSTRUCTIONS
+=========================================
+
+STEP 1: INSTALL NODE.JS (if not already installed)
+---------------------------------------------------
+Download and install Node.js from: https://nodejs.org/
+Choose the LTS (Long Term Support) version.
+
+
+STEP 2: EXTRACT THIS ZIP FILE
+------------------------------
+Extract all files to a folder, for example:
+C:\Users\YourName\Documents\TaskTracker
+
+
+STEP 3: INSTALL DEPENDENCIES
+-----------------------------
+Open Command Prompt or PowerShell in the extracted folder and run:
+
+    npm install
+
+This will download and install Electron and other required packages.
+This may take a few minutes on first install.
+
+
+STEP 4: CONFIGURE THE APP
+--------------------------
+Edit the following files before running:
+
+A. data/config.json
+   - Set your webhook_url (your n8n webhook endpoint)
+   - Optionally customize logo and title settings
+   
+   Example:
+   {
+     "webhook_url": "https://your-n8n-instance.com/webhook/freshbooks",
+     "use_logo": false,
+     "logo_path": "",
+     "project_title": "Time Tracker",
+     "use_title": true,
+     ...
+   }
+
+B. data/clients.json
+   - Add your Freshbooks clients and projects
+   - Replace the example data with your actual client IDs
+   
+   Example:
+   [
+     {
+       "client_name": "Your Client",
+       "client_id": "12345",
+       "projects": [
+         {
+           "project_name": "Project Name",
+           "project_id": "67890"
+         }
+       ]
+     }
+   ]
+
+
+STEP 5: RUN THE APP
+-------------------
+In the same Command Prompt/PowerShell window, run:
+
+    npm start
+
+The app will start in the background with a system tray icon.
+Press Alt+T to show/hide the time tracker window.
+
+
+TROUBLESHOOTING
+---------------
+If you see errors:
+1. Make sure you ran "npm install" in the correct folder
+2. Make sure Node.js is properly installed (run: node --version)
+3. Delete the node_modules folder and run "npm install" again
+4. Check that data/config.json is valid JSON (no syntax errors)
+5. Check that data/clients.json is valid JSON (no syntax errors)
+
+
+USAGE
+-----
+- Press Alt+T to show/hide the tracker
+- Double-click the system tray icon to toggle window
+- Right-click tray icon → Quit to exit the app
+- The X button hides the window (doesn't quit)
+
+
+CUSTOMIZATION
+-------------
+To add a custom logo:
+1. Save your logo image somewhere (e.g., C:\Users\David\logo.png)
+2. Edit data/config.json:
+   {
+     "use_logo": true,
+     "logo_path": "C:\\Users\\David\\logo.png",
+     ...
+   }
+   Note: Use double backslashes (\\) in Windows paths!
+
+To change the title:
+1. Edit data/config.json:
+   {
+     "project_title": "My Custom Title",
+     "use_title": true,
+     ...
+   }
+
+
+SUPPORT
+-------
+For issues, check the console output where you ran "npm start"
+Error messages will appear there.
