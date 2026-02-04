@@ -2,6 +2,7 @@ let clients = [];
 let timers = [];
 let config = {};
 let timerUpdateInterval = null;
+const submittingTimers = new Set();
 
 // Modal functions
 function showModal(
@@ -63,6 +64,73 @@ function showModal(
     confirmBtn.addEventListener("click", handleConfirm);
     cancelBtn.addEventListener("click", handleCancel);
   });
+}
+
+//Client field focus helper
+function focusClientSelect() {
+  const clientSelect = document.getElementById("clientSelect");
+  if (clientSelect) {
+    clientSelect.focus();
+    clientSelect.click();
+  }
+}
+
+//Client focus mode helper
+function switchMode(mode) {
+  const timerBtn = document.getElementById("timerModeBtn");
+  const manualBtn = document.getElementById("manualModeBtn");
+  const timerForm = document.getElementById("timerForm");
+  const manualForm = document.getElementById("manualForm");
+
+  if (mode === "timer") {
+    timerBtn.classList.add("active");
+    manualBtn.classList.remove("active");
+    timerForm.style.display = "flex";
+    manualForm.style.display = "none";
+
+    // Focus client field
+    setTimeout(() => {
+      document.getElementById("clientSelect")?.focus();
+    }, 0);
+  }
+
+  if (mode === "manual") {
+    manualBtn.classList.add("active");
+    timerBtn.classList.remove("active");
+    manualForm.style.display = "flex";
+    timerForm.style.display = "none";
+
+    setTimeout(() => {
+      document.getElementById("manualClient")?.focus();
+    }, 0);
+  }
+}
+
+function normalizeHotkeyEvent(e) {
+  const parts = [];
+  if (e.ctrlKey) parts.push("Ctrl");
+  if (e.altKey) parts.push("Alt");
+  if (e.shiftKey) parts.push("Shift");
+  if (e.metaKey) parts.push("Meta");
+
+  parts.push(e.key.length === 1 ? e.key.toUpperCase() : e.key);
+  return parts.join("+");
+}
+
+function normalizeHotkey(hotkey) {
+  return hotkey
+    .split("+")
+    .map((k) => (k.length === 1 ? k.toUpperCase() : capitalize(k)))
+    .sort((a, b) => priority(a) - priority(b))
+    .join("+");
+}
+
+function priority(key) {
+  return ["Ctrl", "Alt", "Shift", "Meta"].indexOf(key) !== -1 ? 0 : 1;
+}
+
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 // Simple UUID generator (no external dependencies needed)
@@ -142,6 +210,9 @@ async function init() {
     populateClientDropdowns();
     renderTimers();
     startTimerUpdates();
+
+    // Focus client immediately
+    setTimeout(focusClientSelect, 0);
 
     // Set manual entry start time to now
     const now = new Date();
@@ -396,6 +467,23 @@ function setupEventListeners() {
       window.api.closeWindow();
     }
   });
+
+  //Listen for mode switch hotkeys
+  document.addEventListener("keydown", (e) => {
+    if (!config?.mode_hotkeys) return;
+
+    const combo = normalizeHotkeyEvent(e);
+
+    if (combo === normalizeHotkey(config.mode_hotkeys.timer_mode)) {
+      e.preventDefault();
+      switchMode("timer");
+    }
+
+    if (combo === normalizeHotkey(config.mode_hotkeys.manual_mode)) {
+      e.preventDefault();
+      switchMode("manual");
+    }
+  });
 }
 
 // Render active timers
@@ -408,10 +496,11 @@ function renderTimers() {
   }
 
   timersList.innerHTML = timers
+    .filter((timer) => !submittingTimers.has(timer.id))
     .map((timer) => {
       const elapsed = getElapsedTime(timer.started_at);
       return `
-      <div class="timer-item">
+      <div class="timer-item" id="timer-${timer.id}">
         <div class="timer-info">
           <div class="timer-client">${timer.client_name}</div>
           <div class="timer-task">${timer.task_name}</div>
@@ -464,7 +553,6 @@ async function finishTimer(timerId) {
   const startTime = new Date(timer.started_at);
   let durationSeconds = Math.floor((endTime - startTime) / 1000);
 
-  // Apply rounding rules
   let durationMinutes = Math.floor(durationSeconds / 60);
   if (durationMinutes < 5) durationMinutes = 5;
   if (durationMinutes > 15) {
@@ -482,25 +570,34 @@ async function finishTimer(timerId) {
     service_name: timer.task_name,
   };
 
+  submittingTimers.add(timerId);
+
   try {
     await window.api.sendWebhook(payload);
 
-    // Remove from active timers
-    timers = timers.filter((t) => t.id !== timerId);
-    await window.api.saveTimers(timers);
+    const timerEl = document.getElementById(`timer-${timerId}`);
+    if (!timerEl) return;
 
-    renderTimers();
+    timerEl.classList.add("submitted");
+    timerEl.innerHTML = `
+      <div class="timer-info">
+        <div class="timer-client">✓ Entry submitted</div>
+        <div class="timer-task">${timer.task_name}</div>
+      </div>
+    `;
 
-    // Show success message
-    const hours = Math.floor(durationMinutes / 60);
-    const mins = durationMinutes % 60;
-    const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-    await showModal(
-      "Timer Logged",
-      `${timer.task_name} - ${timeStr} logged successfully!`,
-      "success",
-    );
+    setTimeout(() => {
+      timerEl.classList.add("fade-out");
+
+      setTimeout(async () => {
+        submittingTimers.delete(timerId);
+        timers = timers.filter((t) => t.id !== timerId);
+        await window.api.saveTimers(timers);
+        renderTimers();
+      }, 600);
+    }, 1200);
   } catch (error) {
+    submittingTimers.delete(timerId);
     await showModal("Error", `Failed to log timer: ${error.message}`, "error");
   }
 }
@@ -524,6 +621,17 @@ async function cancelTimer(timerId) {
     renderTimers();
   }
 }
+
+window.api.onWindowShown(() => {
+  // Ensure Timer mode is active
+  switchMode("timer");
+
+  // Focus client select after render
+  setTimeout(() => {
+    const clientSelect = document.getElementById("clientSelect");
+    clientSelect?.focus();
+  }, 50);
+});
 
 // Wait for DOM to be ready, then initialize
 document.addEventListener("DOMContentLoaded", () => {

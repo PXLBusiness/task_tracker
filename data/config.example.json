@@ -1,6 +1,10 @@
 {
   "webhook_url": "https://your-n8n-instance.com/webhook/freshbooks-time",
   "hotkey": "Alt+T",
+  "mode_hotkeys": {
+    "timer_mode": "Alt+1",
+    "manual_mode": "Alt+2"
+  },
   "window_width": 1000,
   "window_height": 1080,
   "use_logo": false,

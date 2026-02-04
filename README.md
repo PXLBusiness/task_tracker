@@ -29,25 +29,29 @@
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/yourusername/freshbooks-time-tracker.git
    cd freshbooks-time-tracker
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Configure the app**
-   
+
    Copy example files and edit with your details:
+
    ```bash
    cp data/config.example.json data/config.json
    cp data/clients.example.json data/clients.json
    ```
-   
+
    Edit `data/config.json`:
+
    ```json
    {
      "webhook_url": "https://your-n8n-instance.com/webhook/freshbooks",
@@ -57,7 +61,7 @@
      ...
    }
    ```
-   
+
    Edit `data/clients.json` with your Freshbooks client and project IDs.
 
 4. **Run the app**
@@ -72,6 +76,7 @@ Press `Alt+T` to show/hide the tracker!
 ### Window Customization
 
 Adjust window dimensions in `data/config.json`:
+
 ```json
 {
   "window_width": 1200,
@@ -82,6 +87,7 @@ Adjust window dimensions in `data/config.json`:
 ### Logo & Branding
 
 Add your own logo:
+
 ```json
 {
   "use_logo": true,
@@ -94,6 +100,7 @@ Add your own logo:
 ### Hotkey
 
 Change the global hotkey (default `Alt+T`):
+
 ```json
 {
   "hotkey": "CommandOrControl+Shift+T"
@@ -103,6 +110,7 @@ Change the global hotkey (default `Alt+T`):
 ### Dynamic Client List
 
 Automatically populate clients from a webhook:
+
 ```json
 {
   "clients_webhook_enabled": true,
@@ -111,11 +119,13 @@ Automatically populate clients from a webhook:
 ```
 
 When enabled:
+
 - Clients are fetched from the webhook on app startup
 - A refresh icon (🔄) appears in the footer to manually refresh
 - Response should be an array matching the `clients.json` format
 
 **Expected webhook response:**
+
 ```json
 [
   {
@@ -152,6 +162,7 @@ The app sends time entries to your n8n webhook in this format:
 ```
 
 **Fields:**
+
 - `task_name` - Description of the work
 - `started_at` - ISO 8601 timestamp
 - `duration` - Duration in seconds (pre-rounded)
@@ -168,12 +179,12 @@ The app sends time entries to your n8n webhook in this format:
 
 ## ⌨️ Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| `Alt+T` | Toggle window |
-| `Tab` | Navigate fields |
-| `Enter` | Submit/Start timer |
-| `Esc` | Close window |
+| Shortcut | Action             |
+| -------- | ------------------ |
+| `Alt+T`  | Toggle window      |
+| `Tab`    | Navigate fields    |
+| `Enter`  | Submit/Start timer |
+| `Esc`    | Close window       |
 
 ## 📋 Usage
 
@@ -232,29 +243,33 @@ This creates platform-specific installers in the `dist/` folder.
 ## 🗺️ Roadmap
 
 ### Phase 1 ✅ (Current)
+
 - [x] Core timer functionality
 - [x] Webhook integration
 - [x] System tray
-- [x] Keyboard navigation
-- [x] Custom branding
 
 ### Phase 2 (Planned)
-- [ ] Offline queue with retry
-- [ ] Recent projects quick-select
-- [ ] Enhanced error handling
+
+- [x] Custom branding
+- [ ] Keyboard navigation
+- [x] Offline queue with retry
 
 ### Phase 3 (Planned)
+
+- [ ] Recent projects quick-select
 - [ ] Timer statistics (today/week/month)
 - [ ] Export time reports
 - [ ] Multiple webhook targets
 
 ### Phase 4 (Planned)
+
 - [ ] Always-on-top floating widget
 - [ ] Idle detection
 - [ ] Milestone alerts (sound/notification)
 - [ ] Pomodoro mode
 
 ### Phase 5 (Planned)
+
 - [ ] Settings UI
 - [ ] Client/project management
 - [ ] Freshbooks API integration (direct)

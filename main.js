@@ -14,6 +14,12 @@ let tray = null;
 // const DATA_DIR = path.join(__dirname, "data");
 let DATA_DIR;
 
+function showMainWindow() {
+  mainWindow.show();
+  mainWindow.focus();
+  mainWindow.webContents.send("window-shown");
+}
+
 async function readJsonSafe(filePath, fallback) {
   try {
     const data = await fs.readFile(filePath, "utf8");
@@ -22,6 +28,78 @@ async function readJsonSafe(filePath, fallback) {
     console.warn(`readJsonSafe fallback for ${filePath}:`, err.message);
     return fallback;
   }
+}
+
+async function sendOrQueue(payload) {
+  const queuePath = path.join(DATA_DIR, "queue.json");
+  const configPath = path.join(DATA_DIR, "config.json");
+
+  const config = await readJsonSafe(configPath, {});
+
+  // If no webhook configured, always queue
+  if (!config.webhook_url) {
+    const queue = await readJsonSafe(queuePath, []);
+    queue.push({
+      payload,
+      queued_at: new Date().toISOString(),
+      attempts: 0,
+      reason: "no_webhook",
+    });
+    await fs.writeFile(queuePath, JSON.stringify(queue, null, 2));
+    return { status: "queued" };
+  }
+
+  try {
+    const fetch = require("node-fetch");
+    const response = await fetch(config.webhook_url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Webhook failed: ${response.status}`);
+    }
+
+    return { status: "sent" };
+  } catch (err) {
+    const queue = await readJsonSafe(queuePath, []);
+    queue.push({
+      payload,
+      queued_at: new Date().toISOString(),
+      attempts: 0,
+      reason: err.message,
+    });
+
+    await fs.writeFile(queuePath, JSON.stringify(queue, null, 2));
+    return { status: "queued" };
+  }
+}
+
+async function retryQueuedEntries() {
+  const queuePath = path.join(DATA_DIR, "queue.json");
+
+  let queue = await readJsonSafe(queuePath, []);
+  if (!queue.length) return;
+
+  const remaining = [];
+
+  for (const item of queue) {
+    try {
+      const result = await sendOrQueue(item.payload);
+
+      if (result.status === "queued") {
+        item.attempts = (item.attempts || 0) + 1;
+        remaining.push(item);
+      }
+      // if sent → drop it
+    } catch {
+      item.attempts = (item.attempts || 0) + 1;
+      remaining.push(item);
+    }
+  }
+
+  await fs.writeFile(queuePath, JSON.stringify(remaining, null, 2));
 }
 
 // Ensure data directory exists
@@ -36,6 +114,7 @@ async function ensureDataDir() {
   const files = {
     "timers.json": "[]",
     "clients.json": "[]",
+    "queue.json": "[]",
     "config.json": JSON.stringify(
       {
         webhook_url: "",
@@ -44,7 +123,7 @@ async function ensureDataDir() {
         window_height: 1080,
         use_logo: false,
         logo_path: "",
-        project_title: "Time Tracker",
+        project_title: "Task Tracker",
         use_title: true,
         clients_webhook_enabled: false,
         clients_webhook_url: "",
@@ -136,10 +215,9 @@ function createTray() {
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: "Show Time Tracker",
+      label: "Show Task Tracker",
       click: () => {
-        mainWindow.show();
-        mainWindow.focus();
+        showMainWindow();
       },
     },
     {
@@ -166,8 +244,7 @@ function createTray() {
     if (mainWindow.isVisible()) {
       mainWindow.hide();
     } else {
-      mainWindow.show();
-      mainWindow.focus();
+      showMainWindow();
     }
   });
 }
@@ -177,6 +254,13 @@ app.whenReady().then(async () => {
   //console.log("DATA_DIR:", DATA_DIR);
 
   await ensureDataDir();
+
+  setInterval(() => {
+    retryQueuedEntries().catch((err) => {
+      console.error("Queue retry error:", err.message);
+    });
+  }, 60_000); // every 60 seconds
+
   await createWindow();
   createTray();
 
@@ -185,8 +269,7 @@ app.whenReady().then(async () => {
     if (mainWindow.isVisible()) {
       mainWindow.hide();
     } else {
-      mainWindow.show();
-      mainWindow.focus();
+      showMainWindow();
     }
   });
 
@@ -243,25 +326,33 @@ ipcMain.handle("close-window", () => {
   mainWindow.hide();
 });
 
+// ipcMain.handle("send-webhook", async (event, payload) => {
+//   const config = await readJsonSafe(path.join(DATA_DIR, "config.json"), {});
+
+//   if (!config.webhook_url) {
+//     throw new Error("Webhook URL not configured");
+//   }
+
+//   const fetch = require("node-fetch");
+//   const response = await fetch(config.webhook_url, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify(payload),
+//   });
+
+//   if (!response.ok) {
+//     throw new Error(`Webhook failed: ${response.statusText}`);
+//   }
+
+//   return await response.json();
+// });
+
+ipcMain.handle("submit-entry", async (event, payload) => {
+  return await sendOrQueue(payload);
+});
+
 ipcMain.handle("send-webhook", async (event, payload) => {
-  const config = await readJsonSafe(path.join(DATA_DIR, "config.json"), {});
-
-  if (!config.webhook_url) {
-    throw new Error("Webhook URL not configured");
-  }
-
-  const fetch = require("node-fetch");
-  const response = await fetch(config.webhook_url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Webhook failed: ${response.statusText}`);
-  }
-
-  return await response.json();
+  return await sendOrQueue(payload);
 });
 
 ipcMain.handle("refresh-clients", async () => {
