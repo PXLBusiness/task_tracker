@@ -1,7 +1,5 @@
 {
   "webhook_url": "https://your-n8n-instance.com/webhook/freshbooks-time",
-  "clients_webhook_enabled": true,
-  "clients_webhook_url": "https://your-n8n-instance.com/webhook/freshbooks-get-projects",
   "hotkey": "Alt+T",
   "window_width": 1000,
   "window_height": 1080,
@@ -9,6 +7,8 @@
   "logo_path": "",
   "project_title": "Time Tracker",
   "use_title": true,
+  "clients_webhook_enabled": false,
+  "clients_webhook_url": "https://your-n8n-instance.com/webhook/get-clients",
   "idle_detection_enabled": false,
   "idle_minutes": 15,
   "milestones_enabled": false,
