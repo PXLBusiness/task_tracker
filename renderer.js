@@ -71,12 +71,35 @@ function generateUUID() {
 // Initialize
 async function init() {
   try {
-    clients = await window.api.getClients();
-    timers = await window.api.getTimers();
     config = await window.api.getConfig();
     
-    console.log('Loaded clients:', clients);
     console.log('Loaded config:', config);
+    
+    // Try to refresh clients from webhook if enabled
+    if (config.clients_webhook_enabled && config.clients_webhook_url) {
+      try {
+        console.log('Attempting to refresh clients from webhook...');
+        clients = await window.api.refreshClients();
+        console.log('Successfully loaded clients from webhook:', clients);
+        
+        // Show refresh button
+        document.getElementById('refreshClientsBtn').style.display = 'flex';
+      } catch (error) {
+        console.warn('Failed to refresh clients from webhook, falling back to local file:', error.message);
+        // Fall back to local clients.json
+        clients = await window.api.getClients();
+        console.log('Loaded clients from local file:', clients);
+        
+        // Still show refresh button so user can try manually
+        document.getElementById('refreshClientsBtn').style.display = 'flex';
+      }
+    } else {
+      // Load from local clients.json
+      clients = await window.api.getClients();
+      console.log('Loaded clients from local file:', clients);
+    }
+    
+    timers = await window.api.getTimers();
     
     // Apply logo and title settings
     applyBranding();
@@ -154,6 +177,11 @@ function updateProjectDropdown(clientId, targetSelectId) {
       option.textContent = project.project_name;
       projectSelect.appendChild(option);
     });
+    
+    // Auto-select first project if available
+    if (client.projects.length > 0) {
+      projectSelect.value = client.projects[0].project_id;
+    }
   }
 }
 
@@ -162,6 +190,29 @@ function setupEventListeners() {
   // Close button
   document.getElementById('closeBtn').addEventListener('click', () => {
     window.api.closeWindow();
+  });
+  
+  // Refresh clients button
+  document.getElementById('refreshClientsBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('refreshClientsBtn');
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    
+    try {
+      console.log('Refreshing clients from webhook...');
+      clients = await window.api.refreshClients();
+      console.log('Received clients:', clients);
+      console.log('Number of clients:', clients.length);
+      
+      populateClientDropdowns();
+      await showModal('Success', `Loaded ${clients.length} clients successfully!`, 'success');
+    } catch (error) {
+      console.error('Refresh error:', error);
+      await showModal('Error', `Failed to refresh clients: ${error.message}`, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    }
   });
 
   // Mode toggle

@@ -7,5 +7,6 @@ contextBridge.exposeInMainWorld('api', {
   getConfig: () => ipcRenderer.invoke('get-config'),
   saveConfig: (config) => ipcRenderer.invoke('save-config', config),
   closeWindow: () => ipcRenderer.invoke('close-window'),
-  sendWebhook: (payload) => ipcRenderer.invoke('send-webhook', payload)
+  sendWebhook: (payload) => ipcRenderer.invoke('send-webhook', payload),
+  refreshClients: () => ipcRenderer.invoke('refresh-clients')
 });

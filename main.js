@@ -27,6 +27,8 @@ async function ensureDataDir() {
       logo_path: '',
       project_title: 'Time Tracker',
       use_title: true,
+      clients_webhook_enabled: false,
+      clients_webhook_url: '',
       idle_detection_enabled: false,
       idle_minutes: 15,
       milestones_enabled: false,
@@ -234,4 +236,65 @@ ipcMain.handle('send-webhook', async (event, payload) => {
   }
   
   return await response.json();
+});
+
+ipcMain.handle('refresh-clients', async () => {
+  const config = JSON.parse(
+    await fs.readFile(path.join(DATA_DIR, 'config.json'), 'utf8')
+  );
+  
+  if (!config.clients_webhook_enabled || !config.clients_webhook_url) {
+    throw new Error('Clients webhook not configured');
+  }
+  
+  const fetch = require('node-fetch');
+  const response = await fetch(config.clients_webhook_url, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Clients webhook failed: ${response.statusText}`);
+  }
+  
+  // Get raw text first, then parse
+  const responseText = await response.text();
+  console.log('Raw webhook response:', responseText.substring(0, 200) + '...');
+  
+  let responseData;
+  try {
+    responseData = JSON.parse(responseText);
+  } catch (error) {
+    console.error('Failed to parse webhook response:', error);
+    throw new Error('Webhook returned invalid JSON');
+  }
+  
+  console.log('Parsed response type:', Array.isArray(responseData) ? 'Array' : typeof responseData);
+  console.log('Response data:', responseData);
+  
+  // Handle different response formats
+  let clientsData;
+  if (Array.isArray(responseData)) {
+    // Direct array response
+    clientsData = responseData;
+  } else if (responseData.data && Array.isArray(responseData.data)) {
+    // Wrapped in { data: [...] }
+    clientsData = responseData.data;
+  } else if (responseData.clients && Array.isArray(responseData.clients)) {
+    // Wrapped in { clients: [...] }
+    clientsData = responseData.clients;
+  } else {
+    console.error('Unexpected webhook response format:', responseData);
+    throw new Error('Webhook returned unexpected format - expected an array of clients');
+  }
+  
+  console.log('Final clients data - count:', clientsData.length);
+  
+  // Save to clients.json
+  await fs.writeFile(
+    path.join(DATA_DIR, 'clients.json'),
+    JSON.stringify(clientsData, null, 2)
+  );
+  
+  return clientsData;
 });

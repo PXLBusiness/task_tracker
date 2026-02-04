@@ -1,5 +1,7 @@
 {
   "webhook_url": "https://your-n8n-instance.com/webhook/freshbooks-time",
+  "clients_webhook_enabled": true,
+  "clients_webhook_url": "https://your-n8n-instance.com/webhook/freshbooks-get-projects",
   "hotkey": "Alt+T",
   "window_width": 1000,
   "window_height": 1080,

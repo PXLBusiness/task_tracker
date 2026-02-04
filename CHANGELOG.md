@@ -16,8 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Smart duration rounding (5min minimum, 10min increments for >15min)
 - n8n webhook integration for sending time entries
 - Client and project dropdown management
+- **Dynamic client list from webhook** - auto-populate clients from n8n/Freshbooks
+- **Manual client refresh button** - refresh icon in footer to update client list
+- **Auto-select first project** - automatically selects first project when client chosen
 - Custom logo and title support
-- Configurable window dimensions
+- **Configurable window dimensions** - set width/height in config
 - System tray integration with context menu
 - Keyboard-first navigation (Tab, Enter, Esc)
 - Draggable window positioning

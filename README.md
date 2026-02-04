@@ -100,6 +100,39 @@ Change the global hotkey (default `Alt+T`):
 }
 ```
 
+### Dynamic Client List
+
+Automatically populate clients from a webhook:
+```json
+{
+  "clients_webhook_enabled": true,
+  "clients_webhook_url": "https://your-n8n-instance.com/webhook/get-clients"
+}
+```
+
+When enabled:
+- Clients are fetched from the webhook on app startup
+- A refresh icon (🔄) appears in the footer to manually refresh
+- Response should be an array matching the `clients.json` format
+
+**Expected webhook response:**
+```json
+[
+  {
+    "client_name": "Client Name",
+    "client_id": "12345",
+    "projects": [
+      {
+        "project_name": "Project Name",
+        "project_id": "67890"
+      }
+    ]
+  }
+]
+```
+
+This allows you to keep your client list in sync with Freshbooks automatically!
+
 ## 📡 Webhook Integration
 
 ### n8n Workflow Setup
