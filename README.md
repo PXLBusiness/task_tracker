@@ -3,7 +3,7 @@
 > A beautiful, lightweight Electron app for tracking time and automatically logging entries to Freshbooks via n8n webhooks.
 
 ![Version](https://img.shields.io/badge/version-1.0.0--phase1-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
+![License](https://img.shields.io/badge/license-Personal%20Use%20Only-orange)
 ![Electron](https://img.shields.io/badge/electron-28.0.0-lightblue)
 
 ## ✨ Features
@@ -284,7 +284,33 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+**Copyright © 2026 PXL Business Development**
+
+This project is **free for personal use**.
+
+You may:
+
+- ✅ Use the application for personal or individual productivity
+- ✅ Modify the source for your own personal use
+- ✅ Build and run the application locally
+
+You may **not**, without prior written permission:
+
+- ❌ Sell or redistribute the software (source or binaries)
+- ❌ Use it commercially within a business or organization
+- ❌ Bundle it with paid products or services
+- ❌ Offer it as part of a SaaS or hosted solution
+
+### Commercial Use
+
+If you would like to use this software commercially, please contact:
+
+**David — PXL Business Development**  
+📧 _(add your email here)_
+
+Commercial licenses are available.
+
+See the [LICENSE](LICENSE) file for full terms.
 
 ## 🙏 Acknowledgments
 
