@@ -258,21 +258,19 @@ This creates platform-specific installers in the `dist/` folder.
 
 - [ ] Recent projects quick-select
 - [ ] Timer statistics (today/week/month)
-- [ ] Export time reports
-- [ ] Multiple webhook targets
+- [ ] Milestone alerts (sound/notification)
 
 ### Phase 4 (Planned)
 
 - [ ] Always-on-top floating widget
-- [ ] Idle detection
-- [ ] Milestone alerts (sound/notification)
-- [ ] Pomodoro mode
+- [ ] Idle detection / alert
 
-### Phase 5 (Planned)
+### Phase 5 (Under Consideration)
 
 - [ ] Settings UI
-- [ ] Client/project management
+- [ ] Export time reports
 - [ ] Freshbooks API integration (direct)
+- [ ] Pomodoro mode
 
 ## 🤝 Contributing
 
