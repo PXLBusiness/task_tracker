@@ -251,7 +251,7 @@ This creates platform-specific installers in the `dist/` folder.
 ### Phase 2 (Planned)
 
 - [x] Custom branding
-- [ ] Keyboard navigation
+- [x] Keyboard navigation
 - [x] Offline queue with retry
 
 ### Phase 3 (Planned)

@@ -183,8 +183,12 @@ async function createWindow() {
     },
   });
 
+  console.log("WINDOW CREATED");
+
   // mainWindow.loadFile("index.html");
   mainWindow.loadFile(path.join(__dirname, "index.html"));
+
+  console.log("WINDOW FILE LOADED");
 
   // Center window
   mainWindow.center();
@@ -205,19 +209,20 @@ async function createWindow() {
 }
 
 function createTray() {
-  // Create a simple tray icon (you can replace with actual icon file)
-  //tray = new Tray(path.join(__dirname, "assets", "tray-icon.png"));
-  const trayIconPath = app.isPackaged
+  const iconPath = app.isPackaged
     ? path.join(process.resourcesPath, "assets", "tray-icon.png")
     : path.join(__dirname, "assets", "tray-icon.png");
 
-  tray = new Tray(trayIconPath);
+  console.log("Tray icon path:", iconPath);
+
+  tray = new Tray(iconPath);
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: "Show Task Tracker",
+      label: "Show Time Tracker",
       click: () => {
-        showMainWindow();
+        mainWindow.show();
+        mainWindow.focus();
       },
     },
     {
@@ -238,18 +243,25 @@ function createTray() {
 
   tray.setToolTip("Time Tracker");
   tray.setContextMenu(contextMenu);
-
-  // Double click to show window
-  tray.on("double-click", () => {
-    if (mainWindow.isVisible()) {
-      mainWindow.hide();
-    } else {
-      showMainWindow();
-    }
-  });
 }
 
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+  process.exit(0);
+}
+
+app.on("second-instance", () => {
+  if (mainWindow) {
+    mainWindow.show();
+    mainWindow.focus();
+  }
+});
+
 app.whenReady().then(async () => {
+  console.log("APP READY");
+
   DATA_DIR = path.join(app.getPath("userData"), "data");
   //console.log("DATA_DIR:", DATA_DIR);
 
