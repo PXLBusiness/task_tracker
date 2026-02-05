@@ -242,19 +242,19 @@ This creates platform-specific installers in the `dist/` folder.
 
 ## 🗺️ Roadmap
 
-### Phase 1 ✅ (Current)
+### Phase 1 ✅ (Complete)
 
 - [x] Core timer functionality
 - [x] Webhook integration
 - [x] System tray
 
-### Phase 2 (Planned)
+### Phase ✅ (Complete)
 
 - [x] Custom branding
 - [x] Keyboard navigation
 - [x] Offline queue with retry
 
-### Phase 3 (Planned)
+### Phase 3 (In Development)
 
 - [ ] Recent projects quick-select
 - [ ] Timer statistics (today/week/month)
