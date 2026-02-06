@@ -12,6 +12,11 @@
     "recent_4": "Ctrl+4",
     "recent_5": "Ctrl+5"
   },
+  "log_rules": {
+    "min_minutes": 5,
+    "round_after_minutes": 15,
+    "round_to_minutes": 10
+  },
   "window_width": 1000,
   "window_height": 1080,
   "use_logo": false,

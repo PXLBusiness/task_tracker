@@ -202,6 +202,21 @@ function handleRecentHotkey(index) {
   selectRecentProject(item);
 }
 
+function applyLogRounding(durationSeconds) {
+  const rules = config.log_rules;
+
+  let minutes = Math.floor(durationSeconds / 60);
+
+  if (minutes < rules.min_minutes) {
+    minutes = rules.min_minutes;
+  } else if (minutes > rules.round_after_minutes) {
+    minutes =
+      Math.ceil(minutes / rules.round_to_minutes) * rules.round_to_minutes;
+  }
+
+  return minutes * 60;
+}
+
 // Initialize
 async function init() {
   try {
@@ -223,9 +238,14 @@ async function init() {
 
     const recentData = await window.api.getRecentProjects();
 
+    config.log_rules = {
+      min_minutes: 5,
+      round_after_minutes: 15,
+      round_to_minutes: 10,
+      ...(config.log_rules || {}),
+    };
+
     recentHotkeys = config.recent_hotkeys || {};
-    console.log(recentHotkeys);
-    console.log("Recent 1 hotkey:", recentHotkeys.recent_1);
 
     recentProjects = Array.isArray(recentData)
       ? recentData
@@ -506,12 +526,7 @@ function setupEventListeners() {
       let durationSeconds = hours * 3600 + minutes * 60;
 
       // Apply rounding rules
-      let durationMinutes = Math.floor(durationSeconds / 60);
-      if (durationMinutes < 5) durationMinutes = 5;
-      if (durationMinutes > 15) {
-        durationMinutes = Math.ceil(durationMinutes / 10) * 10;
-      }
-      durationSeconds = durationMinutes * 60;
+      durationSeconds = applyLogRounding(durationSeconds);
 
       const payload = {
         task_name: taskInput.value,
@@ -681,12 +696,7 @@ async function finishTimer(timerId) {
   const startTime = new Date(timer.started_at);
   let durationSeconds = Math.floor((endTime - startTime) / 1000);
 
-  let durationMinutes = Math.floor(durationSeconds / 60);
-  if (durationMinutes < 5) durationMinutes = 5;
-  if (durationMinutes > 15) {
-    durationMinutes = Math.ceil(durationMinutes / 10) * 10;
-  }
-  durationSeconds = durationMinutes * 60;
+  durationSeconds = applyLogRounding(durationSeconds);
 
   const payload = {
     task_name: timer.task_name,

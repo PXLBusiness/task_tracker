@@ -257,8 +257,8 @@ This creates platform-specific installers in the `dist/` folder.
 ### Phase 3 (In Development)
 
 - [x] Recent projects quick-select
-- [ ] Rounding Rules
-- [ ] Adjustable Minimum Duration
+- [x] Rounding Rules
+- [x] Adjustable Minimum Duration
 
 ### Phase 4 (Planned)
 

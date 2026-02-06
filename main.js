@@ -13,6 +13,7 @@ let mainWindow;
 let tray = null;
 // const DATA_DIR = path.join(__dirname, "data");
 let DATA_DIR;
+let isQuitting = false;
 
 function showMainWindow() {
   mainWindow.show();
@@ -201,8 +202,10 @@ async function createWindow() {
 
   // Prevent app from quitting when window is closed
   mainWindow.on("close", (event) => {
-    event.preventDefault();
-    mainWindow.hide();
+    if (!isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
+    }
   });
 
   // Open DevTools for debugging (remove in production)
@@ -263,7 +266,7 @@ function createTray() {
     {
       label: "Quit",
       click: () => {
-        app.isQuitting = true;
+        isQuitting = true;
         app.quit();
       },
     },
@@ -285,6 +288,10 @@ app.on("second-instance", () => {
     mainWindow.show();
     mainWindow.focus();
   }
+});
+
+app.on("before-quit", () => {
+  isQuitting = true;
 });
 
 app.whenReady().then(async () => {
