@@ -257,13 +257,15 @@ This creates platform-specific installers in the `dist/` folder.
 ### Phase 3 (In Development)
 
 - [ ] Recent projects quick-select
-- [ ] Timer statistics (today/week/month)
-- [ ] Milestone alerts (sound/notification)
+- [ ] Rounding Rules
+- [ ] Adjustable Minimum Duration
 
 ### Phase 4 (Planned)
 
 - [ ] Always-on-top floating widget
 - [ ] Idle detection / alert
+- [ ] Timer statistics (today/week/month)
+- [ ] Milestone alerts (sound/notification)
 
 ### Phase 5 (Under Consideration)
 
