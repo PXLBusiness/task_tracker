@@ -10,4 +10,7 @@ contextBridge.exposeInMainWorld("api", {
   sendWebhook: (payload) => ipcRenderer.invoke("send-webhook", payload),
   refreshClients: () => ipcRenderer.invoke("refresh-clients"),
   onWindowShown: (callback) => ipcRenderer.on("window-shown", callback),
+  getRecentProjects: () => ipcRenderer.invoke("get-recent-projects"),
+  saveRecentProjects: (data) =>
+    ipcRenderer.invoke("save-recent-projects", data),
 });

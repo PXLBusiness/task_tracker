@@ -2,6 +2,8 @@ let clients = [];
 let timers = [];
 let config = {};
 let timerUpdateInterval = null;
+let recentProjects = [];
+let recentHotkeys = {};
 const submittingTimers = new Set();
 
 // Modal functions
@@ -142,6 +144,64 @@ function generateUUID() {
   });
 }
 
+function renderRecentProjects() {
+  const container = document.getElementById("recentProjects");
+  const grid = document.getElementById("recentGrid");
+
+  if (!recentProjects.length) {
+    container.style.display = "none";
+    return;
+  }
+
+  container.style.display = "block";
+  grid.innerHTML = "";
+
+  recentProjects.forEach((item, index) => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "recent-wrapper";
+
+    const hotkey = recentHotkeys?.[`recent_${index + 1}`];
+
+    wrapper.innerHTML = `
+      ${hotkey ? `<span class="hotkey-label">${hotkey}</span>` : ""}
+      <div class="recent-tile">
+        <div class="recent-client">${item.client_name}</div>
+        <div class="recent-project">${item.project_name}</div>
+      </div>
+    `;
+
+    wrapper
+      .querySelector(".recent-tile")
+      .addEventListener("click", () => selectRecentProject(item));
+
+    grid.appendChild(wrapper);
+  });
+}
+
+function selectRecentProject(item) {
+  switchMode("timer");
+
+  const clientSelect = document.getElementById("clientSelect");
+  const projectSelect = document.getElementById("projectSelect");
+
+  clientSelect.value = item.client_id;
+  updateProjectDropdown(item.client_id, "projectSelect");
+
+  setTimeout(() => {
+    projectSelect.value = item.project_id;
+    document.getElementById("taskInput").focus();
+  }, 0);
+}
+
+function handleRecentHotkey(index) {
+  if (!recentProjects || !recentProjects.length) return;
+
+  const item = recentProjects[index];
+  if (!item) return;
+
+  selectRecentProject(item);
+}
+
 // Initialize
 async function init() {
   try {
@@ -160,6 +220,23 @@ async function init() {
     config = await window.api.getConfig();
 
     console.log("Loaded config:", config);
+
+    const recentData = await window.api.getRecentProjects();
+
+    recentHotkeys = config.recent_hotkeys || {};
+    console.log(recentHotkeys);
+    console.log("Recent 1 hotkey:", recentHotkeys.recent_1);
+
+    recentProjects = Array.isArray(recentData)
+      ? recentData
+      : Array.isArray(recentData?.items)
+        ? recentData.items
+        : [];
+
+    config.recent_projects_limit =
+      recentData?.limit ?? config.recent_projects_limit;
+
+    renderRecentProjects();
 
     // Try to refresh clients from webhook if enabled
     if (config.clients_webhook_enabled && config.clients_webhook_url) {
@@ -470,18 +547,41 @@ function setupEventListeners() {
 
   //Listen for mode switch hotkeys
   document.addEventListener("keydown", (e) => {
-    if (!config?.mode_hotkeys) return;
+    if (!config) return;
 
     const combo = normalizeHotkeyEvent(e);
 
-    if (combo === normalizeHotkey(config.mode_hotkeys.timer_mode)) {
-      e.preventDefault();
-      switchMode("timer");
+    // ----- Mode hotkeys -----
+    if (config.mode_hotkeys) {
+      if (combo === normalizeHotkey(config.mode_hotkeys.timer_mode)) {
+        e.preventDefault();
+        switchMode("timer");
+        return;
+      }
+
+      if (combo === normalizeHotkey(config.mode_hotkeys.manual_mode)) {
+        e.preventDefault();
+        switchMode("manual");
+        return;
+      }
     }
 
-    if (combo === normalizeHotkey(config.mode_hotkeys.manual_mode)) {
-      e.preventDefault();
-      switchMode("manual");
+    // ----- Recent project hotkeys -----
+    if (config.recent_hotkeys) {
+      const mappings = [
+        config.recent_hotkeys.recent_1,
+        config.recent_hotkeys.recent_2,
+        config.recent_hotkeys.recent_3,
+        config.recent_hotkeys.recent_4,
+        config.recent_hotkeys.recent_5,
+      ];
+
+      mappings.forEach((hotkey, index) => {
+        if (hotkey && combo === normalizeHotkey(hotkey)) {
+          e.preventDefault();
+          handleRecentHotkey(index);
+        }
+      });
     }
   });
 }
@@ -544,6 +644,34 @@ function startTimerUpdates() {
   }, 1000);
 }
 
+function recordRecentProject(item) {
+  if (!item?.client_id || !item?.project_id) return;
+
+  if (!Array.isArray(recentProjects)) {
+    recentProjects = [];
+  }
+
+  const max = config?.recent_projects_limit || 5;
+
+  // Deduplicate
+  recentProjects = recentProjects.filter(
+    (p) =>
+      !(p.client_id === item.client_id && p.project_id === item.project_id),
+  );
+
+  recentProjects.unshift({
+    ...item,
+    last_used: Date.now(),
+  });
+
+  recentProjects = recentProjects.slice(0, max);
+
+  window.api.saveRecentProjects({
+    limit: max,
+    items: recentProjects,
+  });
+}
+
 // Finish timer
 async function finishTimer(timerId) {
   const timer = timers.find((t) => t.id === timerId);
@@ -574,6 +702,13 @@ async function finishTimer(timerId) {
 
   try {
     await window.api.sendWebhook(payload);
+
+    recordRecentProject({
+      client_id: timer.client_id,
+      client_name: timer.client_name,
+      project_id: timer.project_id,
+      project_name: timer.project_name,
+    });
 
     const timerEl = document.getElementById(`timer-${timerId}`);
     if (!timerEl) return;

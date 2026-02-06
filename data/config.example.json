@@ -5,6 +5,13 @@
     "timer_mode": "Alt+1",
     "manual_mode": "Alt+2"
   },
+  "recent_hotkeys": {
+    "recent_1": "Ctrl+1",
+    "recent_2": "Ctrl+2",
+    "recent_3": "Ctrl+3",
+    "recent_4": "Ctrl+4",
+    "recent_5": "Ctrl+5"
+  },
   "window_width": 1000,
   "window_height": 1080,
   "use_logo": false,

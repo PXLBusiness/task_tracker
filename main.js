@@ -115,6 +115,7 @@ async function ensureDataDir() {
     "timers.json": "[]",
     "clients.json": "[]",
     "queue.json": "[]",
+    "recent-projects.json": JSON.stringify({ limit: 5, items: [] }, null, 2),
     "config.json": JSON.stringify(
       {
         webhook_url: "",
@@ -206,6 +207,33 @@ async function createWindow() {
 
   // Open DevTools for debugging (remove in production)
   // mainWindow.webContents.openDevTools();
+}
+
+const RECENT_PROJECTS_FILE = path.join(
+  app.getPath("userData"),
+  "recent-projects.json",
+);
+
+function saveRecentProjects(data) {
+  fs.writeFileSync(
+    RECENT_PROJECTS_FILE,
+    JSON.stringify(data, null, 2),
+    "utf-8",
+  );
+}
+
+function getRecentProjects() {
+  if (!fs.existsSync(RECENT_PROJECTS_FILE)) {
+    const initial = { limit: 5, items: [] };
+    fs.writeFileSync(
+      RECENT_PROJECTS_FILE,
+      JSON.stringify(initial, null, 2),
+      "utf-8",
+    );
+    return initial;
+  }
+
+  return JSON.parse(fs.readFileSync(RECENT_PROJECTS_FILE, "utf-8"));
 }
 
 function createTray() {
@@ -403,4 +431,24 @@ ipcMain.handle("refresh-clients", async () => {
   );
 
   return clientsData;
+});
+
+ipcMain.handle("get-recent-projects", async () => {
+  return await readJsonSafe(path.join(DATA_DIR, "recent-projects.json"), {
+    limit: 5,
+    items: [],
+  });
+});
+
+ipcMain.handle("save-recent-projects", async (event, data) => {
+  const filePath = path.join(DATA_DIR, "recent-projects.json");
+
+  // Safety: enforce shape
+  const safeData = {
+    limit: data.limit ?? 5,
+    items: Array.isArray(data.items) ? data.items : [],
+  };
+
+  await fs.writeFile(filePath, JSON.stringify(safeData, null, 2));
+  return true;
 });
