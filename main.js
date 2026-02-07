@@ -15,6 +15,11 @@ let tray = null;
 let DATA_DIR;
 let isQuitting = false;
 
+let miniWindow;
+let miniWindowHiddenByUser = false;
+
+let timers = [];
+
 function showMainWindow() {
   mainWindow.show();
   mainWindow.focus();
@@ -29,6 +34,18 @@ async function readJsonSafe(filePath, fallback) {
     console.warn(`readJsonSafe fallback for ${filePath}:`, err.message);
     return fallback;
   }
+}
+
+function broadcastTimers() {
+  if (miniWindow && !miniWindow.isDestroyed()) {
+    miniWindow.webContents.send("timers-updated", timers);
+
+    if (timers.length === 0 && !miniWindowHiddenByUser) {
+      miniWindow.hide();
+    }
+  }
+
+  //console.log("[Mini Broadcast]", timers.length, "timers → mini window");
 }
 
 async function sendOrQueue(payload) {
@@ -212,6 +229,46 @@ async function createWindow() {
   // mainWindow.webContents.openDevTools();
 }
 
+function createMiniWindow() {
+  miniWindow = new BrowserWindow({
+    width: 280,
+    height: 120,
+    minWidth: 260,
+    maxWidth: 300,
+    minHeight: 80,
+    show: false,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    focusable: false,
+    hasShadow: false,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  miniWindow.loadFile(path.join(__dirname, "mini.html"));
+
+  // Optional: top-right-ish default placement
+  const { width } = miniWindow.getBounds();
+  const primaryDisplay = require("electron").screen.getPrimaryDisplay();
+  const { workArea } = primaryDisplay;
+
+  miniWindow.setPosition(
+    workArea.x + workArea.width - width - 20,
+    workArea.y + 80,
+  );
+
+  miniWindow.on("close", (e) => {
+    e.preventDefault();
+    miniWindow.hide();
+  });
+}
+
 const RECENT_PROJECTS_FILE = path.join(
   app.getPath("userData"),
   "recent-projects.json",
@@ -302,6 +359,8 @@ app.whenReady().then(async () => {
 
   await ensureDataDir();
 
+  timers = await readJsonSafe(path.join(DATA_DIR, "timers.json"), []);
+
   setInterval(() => {
     retryQueuedEntries().catch((err) => {
       console.error("Queue retry error:", err.message);
@@ -309,7 +368,10 @@ app.whenReady().then(async () => {
   }, 60_000); // every 60 seconds
 
   await createWindow();
+  createMiniWindow();
   createTray();
+
+  broadcastTimers();
 
   // Register global hotkey Alt+T
   const registered = globalShortcut.register("Alt+T", () => {
@@ -346,14 +408,19 @@ ipcMain.handle("get-clients", async () => {
 });
 
 ipcMain.handle("get-timers", async () => {
-  return await readJsonSafe(path.join(DATA_DIR, "timers.json"), []);
+  timers = await readJsonSafe(path.join(DATA_DIR, "timers.json"), []);
+  return timers;
 });
 
-ipcMain.handle("save-timers", async (event, timers) => {
+ipcMain.handle("save-timers", async (event, updatedTimers) => {
+  timers = updatedTimers;
+
   await fs.writeFile(
     path.join(DATA_DIR, "timers.json"),
     JSON.stringify(timers, null, 2),
   );
+
+  broadcastTimers();
   return true;
 });
 
@@ -372,27 +439,6 @@ ipcMain.handle("save-config", async (event, config) => {
 ipcMain.handle("close-window", () => {
   mainWindow.hide();
 });
-
-// ipcMain.handle("send-webhook", async (event, payload) => {
-//   const config = await readJsonSafe(path.join(DATA_DIR, "config.json"), {});
-
-//   if (!config.webhook_url) {
-//     throw new Error("Webhook URL not configured");
-//   }
-
-//   const fetch = require("node-fetch");
-//   const response = await fetch(config.webhook_url, {
-//     method: "POST",
-//     headers: { "Content-Type": "application/json" },
-//     body: JSON.stringify(payload),
-//   });
-
-//   if (!response.ok) {
-//     throw new Error(`Webhook failed: ${response.statusText}`);
-//   }
-
-//   return await response.json();
-// });
 
 ipcMain.handle("submit-entry", async (event, payload) => {
   return await sendOrQueue(payload);
@@ -458,4 +504,42 @@ ipcMain.handle("save-recent-projects", async (event, data) => {
 
   await fs.writeFile(filePath, JSON.stringify(safeData, null, 2));
   return true;
+});
+
+ipcMain.handle("show-mini-window", () => {
+  if (miniWindow) {
+    miniWindow.show();
+    miniWindow.focus();
+  }
+});
+
+ipcMain.handle("hide-mini-window", () => {
+  if (miniWindow) {
+    miniWindow.hide();
+  }
+});
+
+ipcMain.handle("finish-timer-mini", async (event, timerId) => {
+  mainWindow.webContents.send("finish-timer", timerId);
+});
+
+ipcMain.handle("cancel-timer-mini", async (event, timerId) => {
+  if (mainWindow) {
+    mainWindow.show();
+    mainWindow.focus();
+  }
+
+  mainWindow.webContents.send("cancel-timer", timerId);
+});
+
+ipcMain.handle("resize-mini-window", (event, contentHeight) => {
+  if (!miniWindow || miniWindow.isDestroyed()) return;
+
+  const MIN_HEIGHT = 80;
+  const MAX_HEIGHT = 400;
+
+  const height = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, contentHeight + 8));
+
+  const [width] = miniWindow.getSize();
+  miniWindow.setSize(width, height, true);
 });

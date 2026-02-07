@@ -47,9 +47,14 @@ function showModal(
     // Show modal
     overlay.style.display = "flex";
 
+    setTimeout(() => {
+      confirmBtn.focus();
+    }, 0);
+
     // Handle confirm
     const handleConfirm = () => {
       overlay.style.display = "none";
+      document.removeEventListener("keydown", handleKeydown);
       confirmBtn.removeEventListener("click", handleConfirm);
       cancelBtn.removeEventListener("click", handleCancel);
       resolve(true);
@@ -58,6 +63,7 @@ function showModal(
     // Handle cancel
     const handleCancel = () => {
       overlay.style.display = "none";
+      document.removeEventListener("keydown", handleKeydown);
       confirmBtn.removeEventListener("click", handleConfirm);
       cancelBtn.removeEventListener("click", handleCancel);
       resolve(false);
@@ -65,6 +71,20 @@ function showModal(
 
     confirmBtn.addEventListener("click", handleConfirm);
     cancelBtn.addEventListener("click", handleCancel);
+
+    const handleKeydown = (e) => {
+      if (e.code === "Space" || e.code === "Enter") {
+        e.preventDefault();
+        handleConfirm();
+      }
+
+      if (e.key === "Escape" && showCancel) {
+        e.preventDefault();
+        handleCancel();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeydown);
   });
 }
 
@@ -307,6 +327,7 @@ async function init() {
     populateClientDropdowns();
     renderTimers();
     startTimerUpdates();
+    syncMiniWindowVisibility();
 
     // Focus client immediately
     setTimeout(focusClientSelect, 0);
@@ -505,6 +526,7 @@ function setupEventListeners() {
     taskInput.value = "";
 
     renderTimers();
+    syncMiniWindowVisibility();
     window.api.closeWindow();
   });
 
@@ -739,6 +761,7 @@ async function finishTimer(timerId) {
         timers = timers.filter((t) => t.id !== timerId);
         await window.api.saveTimers(timers);
         renderTimers();
+        syncMiniWindowVisibility();
       }, 600);
     }, 1200);
   } catch (error) {
@@ -764,6 +787,7 @@ async function cancelTimer(timerId) {
     timers = timers.filter((t) => t.id !== timerId);
     await window.api.saveTimers(timers);
     renderTimers();
+    syncMiniWindowVisibility();
   }
 }
 
@@ -783,5 +807,27 @@ document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
   init();
 });
+
+function syncMiniWindowVisibility() {
+  if (timers.length > 0) {
+    window.api.showMiniWindow();
+  } else {
+    window.api.hideMiniWindow();
+  }
+}
+
+let miniVisible = true;
+
+document.getElementById("toggleMiniBtn")?.addEventListener("click", () => {
+  if (miniVisible) {
+    window.api.hideMiniWindow();
+  } else {
+    window.api.showMiniWindow();
+  }
+  miniVisible = !miniVisible;
+});
+
+window.api.onFinishTimer((id) => finishTimer(id));
+window.api.onCancelTimer((id) => cancelTimer(id));
 
 console.log("Renderer JS finished");

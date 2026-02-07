@@ -576,3 +576,27 @@ textarea {
 .modal-btn:active {
   transform: translateY(0);
 }
+
+.mini-toggle-btn {
+  -webkit-app-region: no-drag;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.2s;
+}
+
+.mini-toggle-btn:hover {
+  background: rgba(88, 166, 255, 0.3);
+}
+
+.header-actions {
+  display: flex;
+  gap: 14px;
+  -webkit-app-region: no-drag;
+  align-items: center;
+}

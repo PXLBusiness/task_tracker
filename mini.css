@@ -1,0 +1,105 @@
+body {
+  margin: 0;
+  background: transparent;
+  font-family: system-ui, sans-serif;
+  overflow: hidden;
+}
+
+.mini-container {
+  background: rgba(30, 30, 46, 0.85);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  padding: 10px;
+  color: #fff;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.mini-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  opacity: 0.85;
+  margin-bottom: 6px;
+  -webkit-app-region: drag;
+}
+
+.mini-header button {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  -webkit-app-region: no-drag;
+}
+
+#miniTimers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#hideMiniBtn {
+  -webkit-app-region: no-drag;
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+}
+
+.mini-timer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mini-task {
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  word-break: break-word;
+}
+
+.mini-client {
+  font-size: 11px;
+  color: #aaa;
+}
+
+.mini-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mini-elapsed {
+  font-family: monospace;
+  font-size: 12px;
+  color: #58a6ff;
+}
+
+.mini-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.mini-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mini-btn.finish {
+  background: rgba(52, 199, 89, 0.4);
+  color: #34c759;
+}
+
+.mini-btn.cancel {
+  background: rgba(255, 59, 48, 0.4);
+  color: #ff3b30;
+}

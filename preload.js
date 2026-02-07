@@ -13,4 +13,14 @@ contextBridge.exposeInMainWorld("api", {
   getRecentProjects: () => ipcRenderer.invoke("get-recent-projects"),
   saveRecentProjects: (data) =>
     ipcRenderer.invoke("save-recent-projects", data),
+  showMiniWindow: () => ipcRenderer.invoke("show-mini-window"),
+  hideMiniWindow: () => ipcRenderer.invoke("hide-mini-window"),
+  onTimersUpdated: (callback) =>
+    ipcRenderer.on("timers-updated", (_, timers) => callback(timers)),
+  finishTimerFromMini: (id) => ipcRenderer.invoke("finish-timer-mini", id),
+  cancelTimerFromMini: (id) => ipcRenderer.invoke("cancel-timer-mini", id),
+  onFinishTimer: (cb) => ipcRenderer.on("finish-timer", (_, id) => cb(id)),
+  onCancelTimer: (cb) => ipcRenderer.on("cancel-timer", (_, id) => cb(id)),
+  resizeMiniWindow: (height) =>
+    ipcRenderer.invoke("resize-mini-window", height),
 });
