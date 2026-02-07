@@ -372,6 +372,26 @@ async function triggerIdleAlert() {
   // Ignore = modal closed without confirm/cancel
 }
 
+async function updateStats() {
+  const stats = await window.api.getStats();
+
+  document.getElementById("statsToday").textContent = secondsToHours(
+    stats.today_seconds || 0,
+  );
+
+  document.getElementById("statsWeek").textContent = secondsToHours(
+    stats.week_seconds || 0,
+  );
+
+  document.getElementById("statsMonth").textContent = secondsToHours(
+    stats.month_seconds || 0,
+  );
+}
+
+function secondsToHours(seconds) {
+  return (seconds / 3600).toFixed(2);
+}
+
 // Initialize
 async function init() {
   try {
@@ -479,6 +499,8 @@ async function init() {
     setTimeout(focusClientSelect, 0);
 
     startIdleWatcher();
+
+    await updateStats();
 
     // Set manual entry start time to now
     const now = new Date();
@@ -905,20 +927,31 @@ async function finishTimer(timerId) {
       </div>
     `;
 
-    setTimeout(() => {
-      timerEl.classList.add("fade-out");
+    await updateStats();
 
-      setTimeout(async () => {
-        submittingTimers.delete(timerId);
-        timers = timers.filter((t) => t.id !== timerId);
-        await window.api.saveTimers(timers);
-        renderTimers();
-        syncMiniWindowVisibility();
+    submittingTimers.delete(timerId);
+    timers = timers.filter((t) => t.id !== timerId);
+    await window.api.saveTimers(timers);
 
-        lastUserActivity = Date.now();
-        startIdleWatcher();
-      }, 600);
-    }, 1200);
+    // Update UI immediately
+    renderTimers();
+    syncMiniWindowVisibility();
+
+    // Reset idle watcher
+    lastUserActivity = Date.now();
+    startIdleWatcher();
+
+    // Optional: keep animation purely visual
+    if (timerEl) {
+      timerEl.classList.add("submitted");
+      timerEl.innerHTML = `
+        <div class="timer-info">
+          <div class="timer-client">✓ Entry submitted</div>
+          <div class="timer-task">${timer.task_name}</div>
+        </div>
+      `;
+      setTimeout(() => timerEl.classList.add("fade-out"), 200);
+    }
   } catch (error) {
     submittingTimers.delete(timerId);
     await showModal("Error", `Failed to log timer: ${error.message}`, "error");
@@ -941,6 +974,7 @@ async function cancelTimer(timerId) {
   if (confirmed) {
     timers = timers.filter((t) => t.id !== timerId);
     await window.api.saveTimers(timers);
+    await updateStats();
     renderTimers();
     syncMiniWindowVisibility();
 

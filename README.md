@@ -264,7 +264,7 @@ This creates platform-specific installers in the `dist/` folder.
 
 - [x] Always-on-top floating widget
 - [x] Idle detection / alert
-- [ ] Timer statistics (today/week/month)
+- [x] Timer statistics (today/week/month)
 - [ ] Milestone alerts (sound/notification)
 
 ### Phase 5 (Under Consideration)

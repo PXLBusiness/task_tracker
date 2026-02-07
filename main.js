@@ -69,6 +69,60 @@ function broadcastTimers() {
   //console.log("[Mini Broadcast]", timers.length, "timers → mini window");
 }
 
+function getWeekKey(d = new Date()) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((date - yearStart) / 86400000 + 1) / 7);
+  return `${date.getUTCFullYear()}-W${week}`;
+}
+
+async function recordStats(durationSeconds) {
+  const statsPath = path.join(DATA_DIR, "stats.json");
+
+  const now = new Date();
+  const todayKey = now.toISOString().slice(0, 10);
+  const weekKey = getWeekKey(now);
+  const monthKey = now.toISOString().slice(0, 7);
+
+  const stats = await readJsonSafe(statsPath, {
+    all_time_seconds: 0,
+    total_entries: 0,
+    today_seconds: 0,
+    today_date: todayKey,
+    week_seconds: 0,
+    week_key: weekKey,
+    month_seconds: 0,
+    month_key: monthKey,
+  });
+
+  // Reset buckets if needed
+  if (stats.today_date !== todayKey) {
+    stats.today_date = todayKey;
+    stats.today_seconds = 0;
+  }
+
+  if (stats.week_key !== weekKey) {
+    stats.week_key = weekKey;
+    stats.week_seconds = 0;
+  }
+
+  if (stats.month_key !== monthKey) {
+    stats.month_key = monthKey;
+    stats.month_seconds = 0;
+  }
+
+  // Increment
+  stats.today_seconds += durationSeconds;
+  stats.week_seconds += durationSeconds;
+  stats.month_seconds += durationSeconds;
+  stats.all_time_seconds += durationSeconds;
+  stats.total_entries += 1;
+
+  await fs.writeFile(statsPath, JSON.stringify(stats, null, 2));
+}
+
 async function sendOrQueue(payload) {
   const queuePath = path.join(DATA_DIR, "queue.json");
   const configPath = path.join(DATA_DIR, "config.json");
@@ -100,6 +154,7 @@ async function sendOrQueue(payload) {
       throw new Error(`Webhook failed: ${response.status}`);
     }
 
+    await recordStats(payload.duration);
     return { status: "sent" };
   } catch (err) {
     const queue = await readJsonSafe(queuePath, []);
@@ -110,6 +165,7 @@ async function sendOrQueue(payload) {
       reason: err.message,
     });
 
+    await recordStats(payload.duration);
     await fs.writeFile(queuePath, JSON.stringify(queue, null, 2));
     return { status: "queued" };
   }
@@ -155,6 +211,23 @@ async function ensureDataDir() {
     "clients.json": "[]",
     "queue.json": "[]",
     "recent-projects.json": JSON.stringify({ limit: 5, items: [] }, null, 2),
+    "stats.json": JSON.stringify(
+      {
+        all_time_seconds: 0,
+        total_entries: 0,
+
+        today_seconds: 0,
+        today_date: new Date().toISOString().slice(0, 10),
+
+        week_seconds: 0,
+        week_key: "",
+
+        month_seconds: 0,
+        month_key: "",
+      },
+      null,
+      2,
+    ),
     "config.json": JSON.stringify(
       {
         webhook_url: "",
@@ -594,4 +667,8 @@ ipcMain.handle("show-main-window", () => {
     mainWindow.show();
     mainWindow.focus();
   }
+});
+
+ipcMain.handle("get-stats", async () => {
+  return await readJsonSafe(path.join(DATA_DIR, "stats.json"), {});
 });

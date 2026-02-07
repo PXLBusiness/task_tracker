@@ -12,6 +12,11 @@ function requestResize() {
 function renderMiniTimers() {
   const container = document.getElementById("miniTimers");
 
+  if (!miniTimers.length && miniTickInterval) {
+    clearInterval(miniTickInterval);
+    miniTickInterval = null;
+  }
+
   if (!miniTimers.length) {
     container.innerHTML = `<div class="mini-empty">No active timers</div>`;
     return;
