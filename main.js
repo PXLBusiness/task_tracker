@@ -8,6 +8,9 @@ const {
 } = require("electron");
 const path = require("path");
 const fs = require("fs").promises;
+const fsSync = require("fs");
+
+const { pathToFileURL } = require("url");
 
 let mainWindow;
 let tray = null;
@@ -19,11 +22,29 @@ let miniWindow;
 let miniWindowHiddenByUser = false;
 
 let timers = [];
+let soundWindow;
 
 function showMainWindow() {
   mainWindow.show();
   mainWindow.focus();
   mainWindow.webContents.send("window-shown");
+}
+
+function createSoundWindow() {
+  soundWindow = new BrowserWindow({
+    width: 1,
+    height: 1,
+    show: false,
+    frame: false,
+    transparent: true,
+    skipTaskbar: true,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+    },
+  });
+
+  soundWindow.loadFile(path.join(__dirname, "sound.html"));
 }
 
 async function readJsonSafe(filePath, fallback) {
@@ -369,6 +390,7 @@ app.whenReady().then(async () => {
 
   await createWindow();
   createMiniWindow();
+  createSoundWindow();
   createTray();
 
   broadcastTimers();
@@ -542,4 +564,34 @@ ipcMain.handle("resize-mini-window", (event, contentHeight) => {
 
   const [width] = miniWindow.getSize();
   miniWindow.setSize(width, height, true);
+});
+
+ipcMain.handle("play-sound", async (event, filename) => {
+  const soundPath = app.isPackaged
+    ? path.join(process.resourcesPath, "assets", filename)
+    : path.join(__dirname, "assets", filename);
+
+  console.log("🔊 Idle sound requested:", filename);
+  console.log("🔊 Resolved sound path:", soundPath);
+
+  if (!fsSync.existsSync(soundPath)) {
+    console.error("❌ Sound file NOT FOUND:", soundPath);
+    return false;
+  }
+
+  const soundUrl = pathToFileURL(soundPath).toString();
+  console.log("🔊 Sound URL:", soundUrl);
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("play-sound", soundUrl);
+  }
+
+  return true;
+});
+
+ipcMain.handle("show-main-window", () => {
+  if (mainWindow) {
+    mainWindow.show();
+    mainWindow.focus();
+  }
 });

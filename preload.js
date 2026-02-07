@@ -23,4 +23,7 @@ contextBridge.exposeInMainWorld("api", {
   onCancelTimer: (cb) => ipcRenderer.on("cancel-timer", (_, id) => cb(id)),
   resizeMiniWindow: (height) =>
     ipcRenderer.invoke("resize-mini-window", height),
+  playSound: (filename) => ipcRenderer.invoke("play-sound", filename),
+  onPlaySound: (cb) => ipcRenderer.on("play-sound", (_, url) => cb(url)),
+  showMainWindow: () => ipcRenderer.invoke("show-main-window"),
 });

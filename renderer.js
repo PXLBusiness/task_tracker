@@ -6,6 +6,31 @@ let recentProjects = [];
 let recentHotkeys = {};
 const submittingTimers = new Set();
 
+let lastUserActivity = Date.now();
+let idleInterval = null;
+let idleModalOpen = false;
+
+function registerIdleListeners() {
+  const activityEvents = [
+    "mousemove",
+    "mousedown",
+    "keydown",
+    "wheel",
+    "touchstart",
+  ];
+
+  activityEvents.forEach((event) => {
+    document.addEventListener(event, () => {
+      lastUserActivity = Date.now();
+    });
+  });
+}
+
+function recordUserActivity(source) {
+  lastUserActivity = Date.now();
+  console.log("[IDLE] activity detected:", source);
+}
+
 // Modal functions
 function showModal(
   title,
@@ -13,6 +38,7 @@ function showModal(
   type = "info",
   confirmText = "OK",
   showCancel = false,
+  showIgnore = false,
 ) {
   return new Promise((resolve) => {
     const overlay = document.getElementById("modalOverlay");
@@ -21,6 +47,7 @@ function showModal(
     const iconEl = document.getElementById("modalIcon");
     const confirmBtn = document.getElementById("modalConfirm");
     const cancelBtn = document.getElementById("modalCancel");
+    const ignoreBtn = document.getElementById("modalIgnore");
 
     // Set content
     titleEl.textContent = title;
@@ -37,12 +64,8 @@ function showModal(
     };
     iconEl.textContent = icons[type] || icons.info;
 
-    // Show/hide cancel button
-    if (showCancel) {
-      cancelBtn.style.display = "block";
-    } else {
-      cancelBtn.style.display = "none";
-    }
+    cancelBtn.style.display = showCancel ? "block" : "none";
+    ignoreBtn.style.display = showIgnore ? "block" : "none";
 
     // Show modal
     overlay.style.display = "flex";
@@ -51,38 +74,48 @@ function showModal(
       confirmBtn.focus();
     }, 0);
 
-    // Handle confirm
-    const handleConfirm = () => {
-      overlay.style.display = "none";
+    const cleanup = () => {
       document.removeEventListener("keydown", handleKeydown);
       confirmBtn.removeEventListener("click", handleConfirm);
       cancelBtn.removeEventListener("click", handleCancel);
+      ignoreBtn.removeEventListener("click", handleIgnore);
+    };
+
+    // Handle confirm
+    const handleConfirm = () => {
+      overlay.style.display = "none";
+      cleanup();
       resolve(true);
     };
 
     // Handle cancel
     const handleCancel = () => {
       overlay.style.display = "none";
-      document.removeEventListener("keydown", handleKeydown);
-      confirmBtn.removeEventListener("click", handleConfirm);
-      cancelBtn.removeEventListener("click", handleCancel);
+      cleanup();
       resolve(false);
+    };
+
+    // Handle ignore
+    const handleIgnore = () => {
+      overlay.style.display = "none";
+      cleanup();
+      resolve("ignore");
     };
 
     confirmBtn.addEventListener("click", handleConfirm);
     cancelBtn.addEventListener("click", handleCancel);
+    ignoreBtn.addEventListener("click", handleIgnore);
 
-    const handleKeydown = (e) => {
+    function handleKeydown(e) {
       if (e.code === "Space" || e.code === "Enter") {
         e.preventDefault();
         handleConfirm();
       }
-
-      if (e.key === "Escape" && showCancel) {
+      if (e.code === "Escape") {
         e.preventDefault();
         handleCancel();
       }
-    };
+    }
 
     document.addEventListener("keydown", handleKeydown);
   });
@@ -237,6 +270,108 @@ function applyLogRounding(durationSeconds) {
   return minutes * 60;
 }
 
+function startIdleWatcher() {
+  console.log("[IDLE] startIdleWatcher()", {
+    enabled: config.idle_alerts_enabled,
+    idleMinutes: config.idle_minutes,
+    timers: timers.length,
+  });
+
+  if (idleInterval) {
+    console.log("[IDLE] clearing existing interval");
+    clearInterval(idleInterval);
+  }
+
+  if (idleInterval) clearInterval(idleInterval);
+
+  idleInterval = setInterval(() => {
+    if (!config.idle_alerts_enabled) {
+      console.log("[IDLE] skipped: alerts disabled");
+      return;
+    }
+
+    if (!timers.length) {
+      console.log("[IDLE] skipped: no active timers");
+      return;
+    }
+
+    if (idleModalOpen) {
+      console.log("[IDLE] skipped: modal already open");
+      return;
+    }
+
+    const idleMs = config.idle_minutes * 60 * 1000;
+    const idleTime = Date.now() - lastUserActivity;
+
+    console.log("[IDLE] check", {
+      idleSeconds: Math.floor(idleTime / 1000),
+      thresholdSeconds: Math.floor(idleMs / 1000),
+      task: timers[timers.length - 1]?.task_name,
+    });
+
+    if (idleTime >= idleMs) {
+      console.log("[IDLE] THRESHOLD HIT → triggering idle alert");
+      triggerIdleAlert();
+    }
+  }, 15_000); // check every 15 seconds
+}
+
+function getPrimaryIdleTimer() {
+  return timers[timers.length - 1];
+}
+
+async function triggerIdleAlert() {
+  console.log("[IDLE] triggerIdleAlert()");
+
+  idleModalOpen = true;
+
+  const timer = getPrimaryIdleTimer();
+  if (!timer) {
+    console.log("[IDLE] no primary timer, aborting");
+    idleModalOpen = false;
+    return;
+  }
+
+  console.log("[IDLE] alerting for task:", timer.task_name);
+
+  window.api.showMainWindow?.();
+
+  if (config.idle_sound) {
+    window.api.playSound("alert.mp3");
+  }
+
+  const result = await showModal(
+    "Still working?",
+    `Are you still working on "${timer.task_name}"?`,
+    "question",
+    "Complete Task",
+    true,
+    true,
+  );
+
+  console.log("[IDLE] modal result:", result);
+
+  idleModalOpen = false;
+  lastUserActivity = Date.now(); // reset on any response
+
+  console.log("[IDLE] activity reset after modal");
+
+  if (result === true) {
+    await finishTimer(timer.id);
+  }
+
+  if (result === true) {
+    await finishTimer(timer.id);
+  }
+
+  if (result === false) {
+    await cancelTimer(timer.id);
+  }
+
+  // Cancel button handled via modal cancel
+  // Ignore = modal closed without confirm/cancel
+}
+
 // Initialize
 async function init() {
   try {
@@ -255,6 +390,15 @@ async function init() {
     config = await window.api.getConfig();
 
     console.log("Loaded config:", config);
+
+    console.log("[CONFIG PATH CHECK]", await window.api.getConfig());
+
+    config.idle_alerts_enabled =
+      config.idle_alerts_enabled ?? config.idle_detection_enabled ?? false;
+
+    config.idle_minutes = Number(config.idle_minutes ?? 10);
+
+    config.idle_sound = config.idle_sound ?? true;
 
     const recentData = await window.api.getRecentProjects();
 
@@ -277,6 +421,8 @@ async function init() {
       recentData?.limit ?? config.recent_projects_limit;
 
     renderRecentProjects();
+
+    registerIdleListeners();
 
     // Try to refresh clients from webhook if enabled
     if (config.clients_webhook_enabled && config.clients_webhook_url) {
@@ -331,6 +477,8 @@ async function init() {
 
     // Focus client immediately
     setTimeout(focusClientSelect, 0);
+
+    startIdleWatcher();
 
     // Set manual entry start time to now
     const now = new Date();
@@ -527,6 +675,10 @@ function setupEventListeners() {
 
     renderTimers();
     syncMiniWindowVisibility();
+
+    lastUserActivity = Date.now();
+    startIdleWatcher();
+
     window.api.closeWindow();
   });
 
@@ -762,6 +914,9 @@ async function finishTimer(timerId) {
         await window.api.saveTimers(timers);
         renderTimers();
         syncMiniWindowVisibility();
+
+        lastUserActivity = Date.now();
+        startIdleWatcher();
       }, 600);
     }, 1200);
   } catch (error) {
@@ -788,6 +943,9 @@ async function cancelTimer(timerId) {
     await window.api.saveTimers(timers);
     renderTimers();
     syncMiniWindowVisibility();
+
+    lastUserActivity = Date.now();
+    startIdleWatcher();
   }
 }
 
@@ -829,5 +987,26 @@ document.getElementById("toggleMiniBtn")?.addEventListener("click", () => {
 
 window.api.onFinishTimer((id) => finishTimer(id));
 window.api.onCancelTimer((id) => cancelTimer(id));
+
+["mousemove", "keydown", "mousedown"].forEach((event) => {
+  document.addEventListener(event, () => recordUserActivity(event));
+});
+
+window.api.onPlaySound((soundUrl) => {
+  console.log("🔊 Renderer received sound:", soundUrl);
+
+  const audio = document.getElementById("idleSound");
+  if (!audio) {
+    console.error("❌ idleSound element not found");
+    return;
+  }
+
+  audio.src = soundUrl;
+  audio.volume = 1.0;
+
+  audio.play().catch((err) => {
+    console.error("❌ Audio play failed:", err);
+  });
+});
 
 console.log("Renderer JS finished");

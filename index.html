@@ -210,16 +210,27 @@
           <button id="modalConfirm" class="modal-btn modal-btn-primary">
             OK
           </button>
+
           <button
             id="modalCancel"
-            class="modal-btn modal-btn-secondary"
+            class="modal-btn modal-btn-danger"
             style="display: none"
           >
             Cancel
           </button>
+
+          <button
+            id="modalIgnore"
+            class="modal-btn modal-btn-secondary"
+            style="display: none"
+          >
+            Ignore
+          </button>
         </div>
       </div>
     </div>
+
+    <audio id="idleSound" preload="auto"></audio>
 
     <script src="renderer.js"></script>
   </body>

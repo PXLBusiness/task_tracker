@@ -17,6 +17,9 @@
     "round_after_minutes": 15,
     "round_to_minutes": 10
   },
+  "idle_alerts_enabled": true,
+  "idle_minutes": 15,
+  "idle_sound": true,
   "window_width": 1000,
   "window_height": 1080,
   "use_logo": false,
@@ -25,8 +28,6 @@
   "use_title": true,
   "clients_webhook_enabled": false,
   "clients_webhook_url": "https://your-n8n-instance.com/webhook/get-clients",
-  "idle_detection_enabled": false,
-  "idle_minutes": 15,
   "milestones_enabled": false,
   "milestone_times": [60, 120, 180],
   "milestone_sound": true,
