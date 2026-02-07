@@ -254,7 +254,7 @@ This creates platform-specific installers in the `dist/` folder.
 - [x] Keyboard navigation
 - [x] Offline queue with retry
 
-### Phase 3 (In Development)
+### Phase 3 ✅ (Complete)
 
 - [x] Recent projects quick-select
 - [x] Rounding Rules
