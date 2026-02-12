@@ -6,31 +6,8 @@ let recentProjects = [];
 let recentHotkeys = {};
 const submittingTimers = new Set();
 
-let lastUserActivity = Date.now();
-let idleInterval = null;
 let idleModalOpen = false;
 let triggeredMilestones = {};
-
-function registerIdleListeners() {
-  const activityEvents = [
-    "mousemove",
-    "mousedown",
-    "keydown",
-    "wheel",
-    "touchstart",
-  ];
-
-  activityEvents.forEach((event) => {
-    document.addEventListener(event, () => {
-      lastUserActivity = Date.now();
-    });
-  });
-}
-
-function recordUserActivity(source) {
-  lastUserActivity = Date.now();
-  console.log("[IDLE] activity detected:", source);
-}
 
 // Modal functions
 function showModal(
@@ -108,13 +85,26 @@ function showModal(
     ignoreBtn.addEventListener("click", handleIgnore);
 
     function handleKeydown(e) {
-      if (e.code === "Space" || e.code === "Enter") {
+      if (e.code === "Enter") {
         e.preventDefault();
-        handleConfirm();
+        document.activeElement.click();
+      }
+
+      if (e.code === "Space") {
+        if (document.activeElement.tagName === "BUTTON") {
+          e.preventDefault();
+          document.activeElement.click();
+        }
       }
       if (e.code === "Escape") {
         e.preventDefault();
-        handleCancel();
+        if (showCancel) {
+          handleCancel();
+        } else if (showIgnore) {
+          handleIgnore();
+        } else {
+          handleConfirm();
+        }
       }
     }
 
@@ -156,8 +146,29 @@ function switchMode(mode) {
     manualForm.style.display = "flex";
     timerForm.style.display = "none";
 
+    const timerClient = document.getElementById("clientSelect");
+    const timerProject = document.getElementById("projectSelect");
+    const manualClient = document.getElementById("manualClient");
+    const manualProject = document.getElementById("manualProject");
+
+    if (timerClient.value) {
+      manualClient.value = timerClient.value;
+      updateProjectDropdown(timerClient.value, "manualProject");
+
+      setTimeout(() => {
+        manualProject.value = timerProject.value;
+      }, 0);
+    }
+
+    // Set start time to NOW
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById("manualStart").value = now
+      .toISOString()
+      .slice(0, 16);
+
     setTimeout(() => {
-      document.getElementById("manualClient")?.focus();
+      manualClient?.focus();
     }, 0);
   }
 }
@@ -271,69 +282,18 @@ function applyLogRounding(durationSeconds) {
   return minutes * 60;
 }
 
-function startIdleWatcher() {
-  console.log("[IDLE] startIdleWatcher()", {
-    enabled: config.idle_alerts_enabled,
-    idleMinutes: config.idle_minutes,
-    timers: timers.length,
-  });
-
-  if (idleInterval) {
-    console.log("[IDLE] clearing existing interval");
-    clearInterval(idleInterval);
-  }
-
-  if (idleInterval) clearInterval(idleInterval);
-
-  idleInterval = setInterval(() => {
-    if (!config.idle_alerts_enabled) {
-      console.log("[IDLE] skipped: alerts disabled");
-      return;
-    }
-
-    if (!timers.length) {
-      console.log("[IDLE] skipped: no active timers");
-      return;
-    }
-
-    if (idleModalOpen) {
-      console.log("[IDLE] skipped: modal already open");
-      return;
-    }
-
-    const idleMs = config.idle_minutes * 60 * 1000;
-    const idleTime = Date.now() - lastUserActivity;
-
-    console.log("[IDLE] check", {
-      idleSeconds: Math.floor(idleTime / 1000),
-      thresholdSeconds: Math.floor(idleMs / 1000),
-      task: timers[timers.length - 1]?.task_name,
-    });
-
-    if (idleTime >= idleMs) {
-      console.log("[IDLE] THRESHOLD HIT → triggering idle alert");
-      triggerIdleAlert();
-    }
-  }, 15_000); // check every 15 seconds
-}
-
-function getPrimaryIdleTimer() {
-  return timers[timers.length - 1];
-}
-
 async function triggerIdleAlert() {
   console.log("[IDLE] triggerIdleAlert()");
 
+  if (!timers.length) return;
+
   idleModalOpen = true;
 
-  const timer = getPrimaryIdleTimer();
+  const timer = timers[timers.length - 1]; // most recent active timer
   if (!timer) {
-    console.log("[IDLE] no primary timer, aborting");
     idleModalOpen = false;
     return;
   }
-
-  console.log("[IDLE] alerting for task:", timer.task_name);
 
   window.api.showMainWindow?.();
 
@@ -350,27 +310,13 @@ async function triggerIdleAlert() {
     true,
   );
 
-  console.log("[IDLE] modal result:", result);
-
   idleModalOpen = false;
-  lastUserActivity = Date.now(); // reset on any response
-
-  console.log("[IDLE] activity reset after modal");
 
   if (result === true) {
     await finishTimer(timer.id);
-  }
-
-  if (result === true) {
-    await finishTimer(timer.id);
-  }
-
-  if (result === false) {
+  } else if (result === false) {
     await cancelTimer(timer.id);
   }
-
-  // Cancel button handled via modal cancel
-  // Ignore = modal closed without confirm/cancel
 }
 
 async function updateStats() {
@@ -443,8 +389,6 @@ async function init() {
 
     renderRecentProjects();
 
-    registerIdleListeners();
-
     // Try to refresh clients from webhook if enabled
     if (config.clients_webhook_enabled && config.clients_webhook_url) {
       try {
@@ -498,8 +442,6 @@ async function init() {
 
     // Focus client immediately
     setTimeout(focusClientSelect, 0);
-
-    startIdleWatcher();
 
     await updateStats();
 
@@ -812,9 +754,6 @@ function setupEventListeners() {
     renderTimers();
     syncMiniWindowVisibility();
 
-    lastUserActivity = Date.now();
-    startIdleWatcher();
-
     window.api.closeWindow();
   });
 
@@ -850,7 +789,14 @@ function setupEventListeners() {
 
       try {
         await window.api.sendWebhook(payload);
-        await showModal("Success", "Entry logged successfully!", "success");
+        await showModal(
+          "Success",
+          "Entry logged successfully!",
+          "success",
+          "OK",
+          false,
+          false,
+        );
 
         // Reset form
         taskInput.value = "";
@@ -1052,10 +998,6 @@ async function finishTimer(timerId) {
     renderTimers();
     syncMiniWindowVisibility();
 
-    // Reset idle watcher
-    lastUserActivity = Date.now();
-    startIdleWatcher();
-
     //Reset milestones
     delete triggeredMilestones[timerId];
 
@@ -1085,7 +1027,7 @@ async function cancelTimer(timerId) {
     "Cancel Timer?",
     `Are you sure you want to cancel "${timer.task_name}"?`,
     "question",
-    "Yes, Cancel",
+    "Yes, I'm Sure",
     true,
   );
 
@@ -1095,9 +1037,6 @@ async function cancelTimer(timerId) {
     await updateStats();
     renderTimers();
     syncMiniWindowVisibility();
-
-    lastUserActivity = Date.now();
-    startIdleWatcher();
 
     //Reset milestones
     delete triggeredMilestones[timerId];
@@ -1115,10 +1054,24 @@ window.api.onWindowShown(() => {
   }, 50);
 });
 
+window.api.onSystemIdleTriggered(() => {
+  if (!idleModalOpen) {
+    triggerIdleAlert();
+  }
+});
+
 // Wait for DOM to be ready, then initialize
 document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
   init();
+
+  document.getElementById("manualModeBtn").addEventListener("click", () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById("manualStart").value = now
+      .toISOString()
+      .slice(0, 16);
+  });
 });
 
 function syncMiniWindowVisibility() {
@@ -1142,10 +1095,6 @@ document.getElementById("toggleMiniBtn")?.addEventListener("click", () => {
 
 window.api.onFinishTimer((id) => finishTimer(id));
 window.api.onCancelTimer((id) => cancelTimer(id));
-
-["mousemove", "keydown", "mousedown"].forEach((event) => {
-  document.addEventListener(event, () => recordUserActivity(event));
-});
 
 window.api.onPlaySound((soundUrl) => {
   console.log("🔊 Renderer received sound:", soundUrl);

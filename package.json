@@ -1,7 +1,7 @@
 {
   "name": "freshbooks-time-tracker",
   "version": "1.0.0-phase1",
-  "description": "Beautiful Electron app for tracking time and logging to Freshbooks via n8n webhooks",
+  "description": "Beautiful Electron app for tracking time and logging tasks quickly and unobtrusively, primarily to for power users and freelancers",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -9,8 +9,8 @@
     "build:win": "electron-builder --win nsis"
   },
   "build": {
-    "appId": "com.pxl.freshbooks.timetracker",
-    "productName": "FreshBooks Time Tracker",
+    "appId": "com.pxl.tasktracker",
+    "productName": "Task Tracker",
     "directories": {
       "buildResources": "assets",
       "output": "dist"
@@ -44,7 +44,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "FreshBooks Time Tracker"
+      "shortcutName": "Task Tracker"
     }
   },
   "repository": {
@@ -64,7 +64,7 @@
     "productivity"
   ],
   "author": "David @ PXL Business Development",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE.txt",
   "devDependencies": {
     "electron": "^28.0.0",
     "electron-builder": "^24.9.1"

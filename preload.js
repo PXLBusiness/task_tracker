@@ -27,4 +27,5 @@ contextBridge.exposeInMainWorld("api", {
   onPlaySound: (cb) => ipcRenderer.on("play-sound", (_, url) => cb(url)),
   showMainWindow: () => ipcRenderer.invoke("show-main-window"),
   getStats: () => ipcRenderer.invoke("get-stats"),
+  onSystemIdleTriggered: (cb) => ipcRenderer.on("system-idle-triggered", cb),
 });

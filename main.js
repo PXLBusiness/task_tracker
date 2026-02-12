@@ -9,6 +9,8 @@ const {
 const path = require("path");
 const fs = require("fs").promises;
 const fsSync = require("fs");
+const { powerMonitor } = require("electron");
+let idleCheckInterval = null;
 
 const { pathToFileURL } = require("url");
 
@@ -55,6 +57,26 @@ async function readJsonSafe(filePath, fallback) {
     console.warn(`readJsonSafe fallback for ${filePath}:`, err.message);
     return fallback;
   }
+}
+
+function startSystemIdleWatcher() {
+  if (idleCheckInterval) clearInterval(idleCheckInterval);
+
+  idleCheckInterval = setInterval(() => {
+    if (!timers || timers.length === 0) return;
+
+    readJsonSafe(path.join(DATA_DIR, "config.json"), {}).then((config) => {
+      if (!config.idle_alerts_enabled) return;
+
+      const idleSeconds = powerMonitor.getSystemIdleTime();
+      const thresholdSeconds = (config.idle_minutes || 10) * 60;
+
+      if (idleSeconds >= thresholdSeconds) {
+        console.log("[IDLE] System idle triggered:", idleSeconds);
+        mainWindow.webContents.send("system-idle-triggered");
+      }
+    });
+  }, 15_000);
 }
 
 function broadcastTimers() {
@@ -497,6 +519,7 @@ app.whenReady().then(async () => {
   createMiniWindow();
   createSoundWindow();
   createTray();
+  startSystemIdleWatcher();
 
   broadcastTimers();
 
