@@ -58,15 +58,26 @@ async function readJsonSafe(filePath, fallback) {
 }
 
 function broadcastTimers() {
+  // If we’re quitting, don’t touch windows at all.
+  if (isQuitting) return;
+
+  // Send to main window too (if you use it for window-shown / UI sync)
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("timers-updated", timers);
+  }
+
+  // Send to mini window
   if (miniWindow && !miniWindow.isDestroyed()) {
     miniWindow.webContents.send("timers-updated", timers);
 
+    // Auto-hide mini if no timers and user didn’t manually hide it
     if (timers.length === 0 && !miniWindowHiddenByUser) {
-      miniWindow.hide();
+      // extra guard: only hide if it’s currently visible
+      if (miniWindow.isVisible()) miniWindow.hide();
     }
   }
 
-  //console.log("[Mini Broadcast]", timers.length, "timers → mini window");
+  // console.log("[Broadcast]", timers.length, "timers → windows");
 }
 
 function getWeekKey(d = new Date()) {
@@ -418,6 +429,9 @@ function createTray() {
       label: "Quit",
       click: () => {
         isQuitting = true;
+
+        // stop mini auto-hide logic from firing after quit begins
+        miniWindowHiddenByUser = true;
         app.quit();
       },
     },
@@ -443,6 +457,24 @@ app.on("second-instance", () => {
 
 app.on("before-quit", () => {
   isQuitting = true;
+
+  console.log("🛑 App is quitting — cleaning up");
+
+  if (miniWindow && !miniWindow.isDestroyed()) {
+    miniWindow.destroy();
+  }
+
+  if (soundWindow && !soundWindow.isDestroyed()) {
+    soundWindow.destroy();
+  }
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.destroy();
+  }
+
+  if (tray) {
+    tray.destroy();
+  }
 });
 
 app.whenReady().then(async () => {

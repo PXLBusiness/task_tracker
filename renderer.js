@@ -9,6 +9,7 @@ const submittingTimers = new Set();
 let lastUserActivity = Date.now();
 let idleInterval = null;
 let idleModalOpen = false;
+let triggeredMilestones = {};
 
 function registerIdleListeners() {
   const activityEvents = [
@@ -581,6 +582,119 @@ function updateProjectDropdown(clientId, targetSelectId) {
   }
 }
 
+function checkMilestones() {
+  if (!config.milestones_enabled) return;
+  if (!Array.isArray(config.milestone_times)) return;
+
+  const now = Date.now();
+
+  timers.forEach((timer) => {
+    if (idleModalOpen) return;
+
+    const elapsedMinutes = Math.floor(
+      (now - new Date(timer.started_at).getTime()) / 60000,
+    );
+
+    if (!triggeredMilestones[timer.id]) {
+      triggeredMilestones[timer.id] = [];
+    }
+
+    config.milestone_times.forEach((minuteMark) => {
+      if (
+        elapsedMinutes >= minuteMark &&
+        !triggeredMilestones[timer.id].includes(minuteMark)
+      ) {
+        triggeredMilestones[timer.id].push(minuteMark);
+        triggerMilestoneAlert(timer, minuteMark);
+      }
+    });
+  });
+}
+
+async function triggerMilestoneAlert(timer, minuteMark) {
+  if (config.milestone_sound) {
+    window.api.playSound("alert.mp3");
+  }
+
+  await window.api.showMainWindow();
+
+  const result = await showMilestoneModal(timer, minuteMark);
+
+  if (result === "complete") {
+    await finishTimer(timer.id);
+  }
+
+  if (result === "cancel") {
+    await cancelTimer(timer.id);
+  }
+
+  // keep → do nothing
+}
+
+async function showMilestoneModal(timer, minuteMark) {
+  const overlay = document.getElementById("modalOverlay");
+  const titleEl = document.getElementById("modalTitle");
+  const messageEl = document.getElementById("modalMessage");
+  const iconEl = document.getElementById("modalIcon");
+  const confirmBtn = document.getElementById("modalConfirm");
+  const cancelBtn = document.getElementById("modalCancel");
+
+  titleEl.textContent = "Milestone Reached";
+  messageEl.textContent = `You've been working on "${timer.task_name}" for ${minuteMark} minutes.`;
+  iconEl.textContent = "⏱";
+
+  // Button labels
+  confirmBtn.textContent = "Complete Task";
+  cancelBtn.textContent = "Cancel Task";
+
+  // Add a third button dynamically for Keep Working
+  let keepBtn = document.getElementById("modalKeepWorking");
+  if (!keepBtn) {
+    keepBtn = document.createElement("button");
+    keepBtn.id = "modalKeepWorking";
+    keepBtn.className = "modal-btn modal-btn-secondary";
+    keepBtn.textContent = "Keep Working";
+    confirmBtn.parentNode.insertBefore(keepBtn, confirmBtn);
+  }
+
+  cancelBtn.style.display = "inline-block";
+  overlay.style.display = "flex";
+
+  confirmBtn.classList.add("modal-btn-primary");
+  cancelBtn.classList.add("modal-btn-danger");
+
+  // Focus default → Keep Working
+  keepBtn.focus();
+
+  return new Promise((resolve) => {
+    const cleanup = () => {
+      overlay.style.display = "none";
+      keepBtn.removeEventListener("click", onKeep);
+      confirmBtn.removeEventListener("click", onComplete);
+      cancelBtn.removeEventListener("click", onCancel);
+    };
+
+    const onKeep = () => {
+      cleanup();
+      resolve("keep");
+    };
+
+    const onComplete = () => {
+      cleanup();
+      resolve("complete");
+    };
+
+    const onCancel = () => {
+      cleanup();
+      resolve("cancel");
+    };
+
+    keepBtn.addEventListener("click", onKeep);
+    confirmBtn.addEventListener("click", onComplete);
+    cancelBtn.addEventListener("click", onCancel);
+  });
+}
+
 // Setup event listeners - called after DOM is ready
 function setupEventListeners() {
   // Close button
@@ -851,6 +965,7 @@ function startTimerUpdates() {
   timerUpdateInterval = setInterval(() => {
     if (timers.length > 0) {
       renderTimers();
+      checkMilestones();
     }
   }, 1000);
 }
@@ -941,6 +1056,9 @@ async function finishTimer(timerId) {
     lastUserActivity = Date.now();
     startIdleWatcher();
 
+    //Reset milestones
+    delete triggeredMilestones[timerId];
+
     // Optional: keep animation purely visual
     if (timerEl) {
       timerEl.classList.add("submitted");
@@ -980,6 +1098,9 @@ async function cancelTimer(timerId) {
 
     lastUserActivity = Date.now();
     startIdleWatcher();
+
+    //Reset milestones
+    delete triggeredMilestones[timerId];
   }
 }
 

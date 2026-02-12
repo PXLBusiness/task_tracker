@@ -573,6 +573,16 @@ textarea {
   background: rgba(255, 255, 255, 0.15);
 }
 
+.modal-btn-danger {
+  background: linear-gradient(135deg, #ff6b6b 0%, #d94c4c 100%);
+  color: #fff;
+}
+
+.modal-btn-danger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 107, 107, 0.3);
+}
+
 .modal-btn:active {
   transform: translateY(0);
 }

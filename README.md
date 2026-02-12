@@ -248,7 +248,7 @@ This creates platform-specific installers in the `dist/` folder.
 - [x] Webhook integration
 - [x] System tray
 
-### Phase ✅ (Complete)
+### Phase 2 ✅ (Complete)
 
 - [x] Custom branding
 - [x] Keyboard navigation
@@ -267,12 +267,15 @@ This creates platform-specific installers in the `dist/` folder.
 - [x] Timer statistics (today/week/month)
 - [ ] Milestone alerts (sound/notification)
 
-### Phase 5 (Under Consideration)
+### Phase 5 (Planned)
 
+- [ ] CSV Logging Option
+- [ ] Client / Project population option if not using webhook
 - [ ] Settings UI
-- [ ] Export time reports
-- [ ] Freshbooks API integration (direct)
-- [ ] Pomodoro mode
+
+### Phase 6 (Planned)
+
+- [ ] To-Do List System
 
 ## 🤝 Contributing
 
