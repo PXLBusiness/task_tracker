@@ -2,12 +2,12 @@
 
 > A beautiful, lightweight Electron app for tracking time and automatically logging entries to Freshbooks via n8n webhooks.
 
-![Version](https://img.shields.io/badge/version-1.0.0--phase1-blue)
+![Version](https://img.shields.io/badge/version-0.4--phase5-blue)
 ![License](https://img.shields.io/badge/license-Personal%20Use%20Only-orange)
 ![Electron](https://img.shields.io/badge/electron-28.0.0-lightblue)
 
 <p align="center">
-  <img src="assets/screenshot_01.png" alt="App Screenshot" width="700"/>
+  <img src="assets/screenshot_01.png" alt="App Screenshot" width="500"/>
 </p>
 
 ## ✨ Features
