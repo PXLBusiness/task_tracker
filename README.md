@@ -260,14 +260,14 @@ This creates platform-specific installers in the `dist/` folder.
 - [x] Rounding Rules
 - [x] Adjustable Minimum Duration
 
-### Phase 4 (Planned)
+### Phase 4 (Complete)
 
 - [x] Always-on-top floating widget
 - [x] Idle detection / alert
 - [x] Timer statistics (today/week/month)
 - [x] Milestone alerts (sound/notification)
 
-### Phase 5 (Planned)
+### Phase 5 (In Development)
 
 - [ ] CSV Logging Option
 - [ ] Client / Project population option if not using webhook

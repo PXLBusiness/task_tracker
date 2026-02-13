@@ -1,6 +1,6 @@
 {
   "name": "freshbooks-time-tracker",
-  "version": "1.0.0-phase1",
+  "version": "0.4.0",
   "description": "Beautiful Electron app for tracking time and logging tasks quickly and unobtrusively, primarily to for power users and freelancers",
   "main": "main.js",
   "scripts": {
