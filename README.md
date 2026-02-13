@@ -6,6 +6,10 @@
 ![License](https://img.shields.io/badge/license-Personal%20Use%20Only-orange)
 ![Electron](https://img.shields.io/badge/electron-28.0.0-lightblue)
 
+<p align="center">
+  <img src="assets/screenshot_01.png" alt="App Screenshot" width="700"/>
+</p>
+
 ## ✨ Features
 
 - **🎯 Global Hotkey** - Toggle window with `Alt+T` (customizable)
@@ -260,7 +264,7 @@ This creates platform-specific installers in the `dist/` folder.
 - [x] Rounding Rules
 - [x] Adjustable Minimum Duration
 
-### Phase 4 (Complete)
+### Phase 4 ✅ (Complete)
 
 - [x] Always-on-top floating widget
 - [x] Idle detection / alert
